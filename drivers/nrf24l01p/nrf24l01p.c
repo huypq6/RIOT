@@ -37,12 +37,12 @@
 int nrf24l01p_read_reg(const nrf24l01p_t *dev, char reg, char *answer)
 {
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, SPI_CLK);
-    *answer = (char)spi_transfer_reg(dev->spi, dev->cs,
+    spi_acquire(dev->params.spi, dev->params.cs, SPI_MODE, SPI_CLK);
+    *answer = (char)spi_transfer_reg(dev->params.spi, dev->params.cs,
                                      (CMD_R_REGISTER | (REGISTER_MASK & reg)),
                                      CMD_NOP);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(dev->params.spi);
 
     xtimer_spin(DELAY_AFTER_FUNC_TICKS);
     return 0;
@@ -51,11 +51,11 @@ int nrf24l01p_read_reg(const nrf24l01p_t *dev, char reg, char *answer)
 int nrf24l01p_write_reg(const nrf24l01p_t *dev, char reg, char write)
 {
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, SPI_CLK);
-    spi_transfer_reg(dev->spi, dev->cs,
+    spi_acquire(dev->params.spi, dev->params.cs, SPI_MODE, SPI_CLK);
+    spi_transfer_reg(dev->params.spi, dev->params.cs,
                      (CMD_W_REGISTER | (REGISTER_MASK & reg)), (uint8_t)write);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(dev->params.spi);
 
     xtimer_spin(DELAY_AFTER_FUNC_TICKS);
     return 0;
@@ -68,27 +68,27 @@ int nrf24l01p_init(nrf24l01p_t *dev, spi_t spi, gpio_t ce, gpio_t cs, gpio_t irq
     static const char INITIAL_TX_ADDRESS[] =  {0xe7, 0xe7, 0xe7, 0xe7, 0xe7,};
     static const char INITIAL_RX_ADDRESS[] =  {0xe7, 0xe7, 0xe7, 0xe7, 0xe7,};
 
-    dev->spi = spi;
-    dev->ce = ce;
-    dev->cs = cs;
-    dev->irq = irq;
+    dev->params.spi = spi;
+    dev->params.ce = ce;
+    dev->params.cs = cs;
+    dev->params.irq = irq;
     dev->listener = KERNEL_PID_UNDEF;
 
     /* Init CE pin */
-    gpio_init(dev->ce, GPIO_OUT);
+    gpio_init(dev->params.ce, GPIO_OUT);
 
     /* Init CS pin */
-    spi_init_cs(dev->spi, dev->cs);
+    spi_init_cs(dev->params.spi, dev->params.cs);
 
     /* Init IRQ pin */
-    gpio_init_int(dev->irq, GPIO_IN_PU, GPIO_FALLING, nrf24l01p_rx_cb, dev);
+    gpio_init_int(dev->params.irq, GPIO_IN_PU, GPIO_FALLING, nrf24l01p_rx_cb, dev);
 
     /* Test the SPI connection */
-    if (spi_acquire(dev->spi, dev->cs, SPI_MODE, SPI_CLK) != SPI_OK) {
+    if (spi_acquire(dev->params.spi, dev->params.cs, SPI_MODE, SPI_CLK) != SPI_OK) {
         DEBUG("error: unable to acquire SPI bus with given params\n");
         return -1;
     }
-    spi_release(dev->spi);
+    spi_release(dev->params.spi);
 
     xtimer_spin(DELAY_AFTER_FUNC_TICKS);
 
@@ -214,9 +214,9 @@ int nrf24l01p_off(const nrf24l01p_t *dev)
 
 void nrf24l01p_transmit(const nrf24l01p_t *dev)
 {
-    gpio_set(dev->ce);
+    gpio_set(dev->params.ce);
     xtimer_usleep(DELAY_CE_HIGH_US); /* at least 10 us high */
-    gpio_clear(dev->ce);
+    gpio_clear(dev->params.ce);
 
     xtimer_spin(DELAY_CHANGE_TXRX_TICKS);
 }
@@ -224,11 +224,11 @@ void nrf24l01p_transmit(const nrf24l01p_t *dev)
 int nrf24l01p_read_payload(const nrf24l01p_t *dev, char *answer, unsigned int size)
 {
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, SPI_CLK);
-    spi_transfer_regs(dev->spi, dev->cs, CMD_R_RX_PAYLOAD, NULL, answer, size);
+    spi_acquire(dev->params.spi, dev->params.cs, SPI_MODE, SPI_CLK);
+    spi_transfer_regs(dev->params.spi, dev->params.cs, CMD_R_RX_PAYLOAD, NULL, answer, size);
     xtimer_spin(DELAY_AFTER_FUNC_TICKS);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(dev->params.spi);
 
     return 0;
 }
@@ -256,14 +256,14 @@ void nrf24l01p_get_id(const nrf24l01p_t *dev, unsigned int *pid)
 
 void nrf24l01p_start(const nrf24l01p_t *dev)
 {
-    gpio_set(dev->ce);
+    gpio_set(dev->params.ce);
     xtimer_usleep(DELAY_CE_START_US);
 }
 
 void nrf24l01p_stop(const nrf24l01p_t *dev)
 {
     xtimer_spin(DELAY_CS_TOGGLE_TICKS);
-    gpio_clear(dev->ce);
+    gpio_clear(dev->params.ce);
 }
 
 int nrf24l01p_preload(const nrf24l01p_t *dev, char *data, unsigned int size)
@@ -271,10 +271,10 @@ int nrf24l01p_preload(const nrf24l01p_t *dev, char *data, unsigned int size)
     size = (size <= 32) ? size : 32;
 
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, SPI_CLK);
-    spi_transfer_regs(dev->spi, dev->cs, CMD_W_TX_PAYLOAD, data, NULL, size);
+    spi_acquire(dev->params.spi, dev->params.cs, SPI_MODE, SPI_CLK);
+    spi_transfer_regs(dev->params.spi, dev->params.cs, CMD_W_TX_PAYLOAD, data, NULL, size);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(dev->params.spi);
 
     xtimer_spin(DELAY_AFTER_FUNC_TICKS);
     return 0;
@@ -366,12 +366,12 @@ int nrf24l01p_set_payload_width(const nrf24l01p_t *dev,
 int nrf24l01p_set_tx_address(const nrf24l01p_t *dev, const char *saddr, unsigned int length)
 {
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, SPI_CLK);
-    spi_transfer_regs(dev->spi, dev->cs,
+    spi_acquire(dev->params.spi, dev->params.cs, SPI_MODE, SPI_CLK);
+    spi_transfer_regs(dev->params.spi, dev->params.cs,
                       (CMD_W_REGISTER | (REGISTER_MASK & REG_TX_ADDR)),
                       saddr, NULL, length);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(dev->params.spi);
 
     xtimer_spin(DELAY_AFTER_FUNC_TICKS);
 
@@ -393,12 +393,12 @@ int nrf24l01p_set_tx_address_long(const nrf24l01p_t *dev, uint64_t saddr, unsign
     }
 
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, SPI_CLK);
-    spi_transfer_regs(dev->spi, dev->cs,
+    spi_acquire(dev->params.spi, dev->params.cs, SPI_MODE, SPI_CLK);
+    spi_transfer_regs(dev->params.spi, dev->params.cs,
                       (CMD_W_REGISTER | (REGISTER_MASK & REG_TX_ADDR)),
                       buf, NULL, length);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(dev->params.spi);
 
     xtimer_spin(DELAY_AFTER_FUNC_TICKS);
     return (int)length;
@@ -410,12 +410,12 @@ uint64_t nrf24l01p_get_tx_address_long(const nrf24l01p_t *dev)
     char addr_array[INITIAL_ADDRESS_WIDTH];
 
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, SPI_CLK);
-    spi_transfer_regs(dev->spi, dev->cs,
+    spi_acquire(dev->params.spi, dev->params.cs, SPI_MODE, SPI_CLK);
+    spi_transfer_regs(dev->params.spi, dev->params.cs,
                       (CMD_R_REGISTER | (REGISTER_MASK & REG_TX_ADDR)),
                       NULL, addr_array, INITIAL_ADDRESS_WIDTH);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(dev->params.spi);
 
     xtimer_spin(DELAY_AFTER_FUNC_TICKS);
 
@@ -461,12 +461,12 @@ int nrf24l01p_set_rx_address(const nrf24l01p_t *dev, nrf24l01p_rx_pipe_t pipe, c
     }
 
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, SPI_CLK);
-    spi_transfer_regs(dev->spi, dev->cs,
+    spi_acquire(dev->params.spi, dev->params.cs, SPI_MODE, SPI_CLK);
+    spi_transfer_regs(dev->params.spi, dev->params.cs,
                       (CMD_W_REGISTER | (REGISTER_MASK & pipe_addr)),
                       saddr, NULL, length);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(dev->params.spi);
 
     xtimer_spin(DELAY_AFTER_FUNC_TICKS);
 
@@ -530,12 +530,12 @@ uint64_t nrf24l01p_get_rx_address_long(const nrf24l01p_t *dev, nrf24l01p_rx_pipe
     }
 
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, SPI_CLK);
-    spi_transfer_regs(dev->spi, dev->cs,
+    spi_acquire(dev->params.spi, dev->params.cs, SPI_MODE, SPI_CLK);
+    spi_transfer_regs(dev->params.spi, dev->params.cs,
                       (CMD_R_REGISTER | (REGISTER_MASK & pipe_addr)),
                       NULL, addr_array, INITIAL_ADDRESS_WIDTH);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(dev->params.spi);
 
     xtimer_spin(DELAY_AFTER_FUNC_TICKS);
 
@@ -580,10 +580,10 @@ int nrf24l01p_get_status(const nrf24l01p_t *dev)
     uint8_t status;
 
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, SPI_CLK);
-    status = spi_transfer_byte(dev->spi, dev->cs, false, CMD_NOP);
+    spi_acquire(dev->params.spi, dev->params.cs, SPI_MODE, SPI_CLK);
+    status = spi_transfer_byte(dev->params.spi, dev->params.cs, false, CMD_NOP);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(dev->params.spi);
 
     xtimer_spin(DELAY_AFTER_FUNC_TICKS);
 
@@ -917,10 +917,10 @@ int nrf24l01p_disable_all_auto_ack(const nrf24l01p_t *dev)
 int nrf24l01p_flush_tx_fifo(const nrf24l01p_t *dev)
 {
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, SPI_CLK);
-    spi_transfer_byte(dev->spi, dev->cs, false, CMD_FLUSH_TX);
+    spi_acquire(dev->params.spi, dev->params.cs, SPI_MODE, SPI_CLK);
+    spi_transfer_byte(dev->params.spi, dev->params.cs, false, CMD_FLUSH_TX);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(dev->params.spi);
 
     xtimer_spin(DELAY_AFTER_FUNC_TICKS);
 
@@ -930,10 +930,10 @@ int nrf24l01p_flush_tx_fifo(const nrf24l01p_t *dev)
 int nrf24l01p_flush_rx_fifo(const nrf24l01p_t *dev)
 {
     /* Acquire exclusive access to the bus. */
-    spi_acquire(dev->spi, dev->cs, SPI_MODE, SPI_CLK);
-    spi_transfer_byte(dev->spi, dev->cs, false, CMD_FLUSH_RX);
+    spi_acquire(dev->params.spi, dev->params.cs, SPI_MODE, SPI_CLK);
+    spi_transfer_byte(dev->params.spi, dev->params.cs, false, CMD_FLUSH_RX);
     /* Release the bus for other threads. */
-    spi_release(dev->spi);
+    spi_release(dev->params.spi);
 
     xtimer_spin(DELAY_AFTER_FUNC_TICKS);
 

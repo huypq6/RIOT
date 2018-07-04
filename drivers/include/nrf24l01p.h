@@ -31,16 +31,29 @@ extern "C" {
 #include <stdio.h>
 #include "periph/gpio.h"
 #include "periph/spi.h"
+#include "net/gnrc/nettype.h"
+
+/**
+ * @brief   Struct for holding cc110x IO parameters
+ */
+typedef struct nrf24l01p_params {
+    spi_t spi;           /**< SPI device to initialize */
+    gpio_t ce;           /**< GPIO pin to initialize as chip enable */
+    gpio_t cs;           /**< GPIO pin to initialize as chip select */
+    gpio_t irq;          /**< GPIO pin to initialize as interrupt request */
+} nrf24l01p_params_t;
 
 /**
  * @brief   Structure that represents the hardware setup of the nrf24l01+ transceiver.
  */
 typedef struct {
-    spi_t spi;           /**< SPI device to initialize */
-    gpio_t ce;           /**< GPIO pin to initialize as chip enable */
-    gpio_t cs;           /**< GPIO pin to initialize as chip select */
-    gpio_t irq;          /**< GPIO pin to initialize as interrupt request */
+    nrf24l01p_params_t params;
+
     unsigned listener;   /**< Place to store an ID in */
+
+#ifdef MODULE_GNRC_NETIF
+    gnrc_nettype_t proto;                       /**< protocol the radio expects */
+#endif
 } nrf24l01p_t;
 
 /**
