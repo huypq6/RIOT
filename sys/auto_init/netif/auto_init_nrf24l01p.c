@@ -22,7 +22,7 @@
 #include "log.h"
 #include "debug.h"
 #include "board.h"
-#include "gnrc_netif_cc110x.h"
+#include "gnrc_netif_nrf24l01p.h"
 #include "nrf24l01p-netdev.h"
 #include "net/gnrc.h"
 
@@ -40,7 +40,7 @@
 
 #define NRF24L01P_NUM (sizeof(nrf24l01p_params)/sizeof(nrf24l01p_params[0]))
 
-static netdev_nrf24l01p_t nrf24l01p_devs[CC110X_NUM];
+static netdev_nrf24l01p_t nrf24l01p_devs[NRF24L01P_NUM];
 static char _stacks[NRF24L01P_NUM][NRF24L01P_MAC_STACKSIZE];
 
 void auto_init_nrf24l01p(void)

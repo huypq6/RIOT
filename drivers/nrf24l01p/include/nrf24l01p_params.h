@@ -63,7 +63,7 @@ extern "C" {
  * @name    NRF24L01P configuration
  * @brief   Specifies the SPI bus and GPIOs connected to the NRF24L01P transceiver
  */
-const nrf24l01_params_t nrf24l01_params[] = {
+const nrf24l01p_params_t nrf24l01p_params[] = {
     NRF24L01P_PARAMS
 };
 
