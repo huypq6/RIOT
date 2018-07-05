@@ -49,6 +49,8 @@ typedef struct nrf24l01p_params {
 typedef struct {
     nrf24l01p_params_t params;
 
+    uint8_t radio_channel;                      /**< current Radio channel */
+    uint8_t radio_address[5];                      /**< current Radio address */
     unsigned listener;   /**< Place to store an ID in */
 
 #ifdef MODULE_GNRC_NETIF
@@ -135,6 +137,16 @@ typedef enum {
     RCV_PKT_NRF24L01P = 0,  /**< transceiver received data */
 } nrf24l01p_rx_event_t ;
 
+
+/**
+ * @brief   Setup nrf24l01p device parameters
+ *
+ * @param[in] dev       device struct to set up
+ * @param[in] params    struct holding parameters
+ *
+ * @return always succeeds
+ */
+int nrf24l01p_setup(nrf24l01p_t *dev, const nrf24l01p_params_t *params);
 
 /**
 * @brief   Read one register of the nrf24l01+ transceiver.

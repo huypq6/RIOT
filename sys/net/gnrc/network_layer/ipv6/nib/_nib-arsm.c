@@ -183,6 +183,11 @@ static inline unsigned _get_l2addr_len(gnrc_netif_t *netif,
             (void)opt;
             return sizeof(uint8_t);
 #endif  /* MODULE_CC110X */
+#ifdef MODULE_NRF24L01P
+        case NETDEV_TYPE_NRF24L01P:
+            (void)opt;
+            return sizeof(uint8_t);
+#endif  /* MODULE_CC110X */
 #ifdef MODULE_NETDEV_ETH
         case NETDEV_TYPE_ETHERNET:
             (void)opt;

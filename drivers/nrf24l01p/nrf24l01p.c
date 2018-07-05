@@ -14,6 +14,7 @@
  * @author      Marc Poulhiès <dkm@kataplop.net>
  * @}
  */
+#include "luid.h"
 #include "nrf24l01p.h"
 #include "nrf24l01p_settings.h"
 #include "mutex.h"
@@ -22,6 +23,7 @@
 #include "xtimer.h"
 #include "thread.h"
 #include "msg.h"
+#include "log.h"
 
 
 #define ENABLE_DEBUG (1)
@@ -33,6 +35,77 @@
 
 #define SPI_MODE            SPI_MODE_0
 #define SPI_CLK             SPI_CLK_400KHZ
+
+
+int nrf24l01p_setup(nrf24l01p_t *dev, const nrf24l01p_params_t *params)
+{
+    DEBUG("%s:%s:%u\n", RIOT_FILE_RELATIVE, __func__, __LINE__);
+
+    dev->params = *params;
+
+    /* Configure chip-select */
+    spi_init_cs(dev->params.spi, dev->params.cs);
+
+    /* Init CE pin */
+    gpio_init(dev->params.ce, GPIO_OUT);
+
+    /* Flush TX FIFIO */
+    nrf24l01p_flush_tx_fifo(dev);
+
+    /* Flush RX FIFIO */
+    nrf24l01p_flush_rx_fifo(dev);
+
+    /* Setup adress width */
+    nrf24l01p_set_address_width(dev, NRF24L01P_AW_5BYTE);
+
+    /* Setup payload width */
+    nrf24l01p_set_payload_width(dev, NRF24L01P_PIPE0, NRF24L01P_MAX_DATA_LENGTH);
+
+    /* Set RF channel */
+    nrf24l01p_set_channel(dev, INITIAL_RF_CHANNEL);
+
+    /* Set RF power */
+    nrf24l01p_set_power(dev, INITIAL_RX_POWER_0dB);
+
+    /* Set RF datarate */
+    nrf24l01p_set_datarate(dev, NRF24L01P_DR_250KBS);
+
+
+    /* set default node id */
+    char addr[INITIAL_ADDRESS_WIDTH];
+    luid_get(addr, INITIAL_ADDRESS_WIDTH);
+
+    /* Set TX Address */
+    nrf24l01p_set_tx_address(dev, addr, INITIAL_ADDRESS_WIDTH);
+
+    /* Set RX Adress */
+    nrf24l01p_set_rx_address(dev, NRF24L01P_PIPE0, addr, INITIAL_ADDRESS_WIDTH);
+
+    dev->radio_channel = NRF24L01P_PIPE0;
+    dev->radio_address[0] = addr[0];
+    dev->radio_address[1] = addr[1];
+    dev->radio_address[2] = addr[2];
+    dev->radio_address[3] = addr[3];
+    dev->radio_address[4] = addr[4];
+
+    /* Reset auto ack for all pipes */
+    nrf24l01p_disable_all_auto_ack(dev);
+
+    /* Setup Auto ACK and retransmission */
+    nrf24l01p_setup_auto_ack(dev, NRF24L01P_PIPE0, NRF24L01P_RETR_750US, 15);
+
+    /* Setup CRC */
+    nrf24l01p_enable_crc(dev, NRF24L01P_CRC_2BYTE);
+
+    /* Reset all interrupt flags */
+    nrf24l01p_reset_all_interrupts(dev);
+    
+    LOG_INFO("nrf24l01p: initialized with address=0x%x%x%x%x%x and channel=%i\n",
+            dev->radio_address[0],dev->radio_address[1],dev->radio_address[2],dev->radio_address[3],dev->radio_address[4],
+            dev->radio_channel);
+
+    return nrf24l01p_on(dev);
+}
 
 int nrf24l01p_read_reg(const nrf24l01p_t *dev, char reg, char *answer)
 {

@@ -84,7 +84,7 @@
 #include "ndn-riot/ndn.h"
 #endif
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 void auto_init(void)
@@ -206,6 +206,12 @@ void auto_init(void)
 #ifdef MODULE_CC110X
     extern void auto_init_cc110x(void);
     auto_init_cc110x();
+#endif
+
+#ifdef MODULE_NRF24L01P
+    DEBUG("Auto init nrf24l01p module\n");
+    extern void auto_init_nrf24l01p(void);
+    auto_init_nrf24l01p();
 #endif
 
 #ifdef MODULE_CC2538_RF

@@ -34,7 +34,7 @@
 #include "net/netdev.h"
 #include "net/gnrc/nettype.h"
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG    (1)
 #include "debug.h"
 
 static int _send(netdev_t *dev, const iolist_t *iolist)

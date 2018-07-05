@@ -776,7 +776,7 @@ int gnrc_netif_ipv6_group_idx(gnrc_netif_t *netif, const ipv6_addr_t *addr)
     return idx;
 }
 
-#if defined(MODULE_NETDEV_IEEE802154) || defined(MODULE_CC110X) || \
+#if defined(MODULE_NETDEV_IEEE802154) || defined(MODULE_CC110X) || defined(MODULE_NRF24L01P) || \
     defined(MODULE_NRFMIN) || defined(MODULE_XBEE)
 static void _create_iid_from_short(const gnrc_netif_t *netif, eui64_t *eui64)
 {
@@ -833,9 +833,10 @@ int gnrc_netif_ipv6_get_iid(gnrc_netif_t *netif, eui64_t *eui64)
                 eui64->uint8[0] ^= 0x02;
                 return 0;
 #endif
-#if defined(MODULE_CC110X) || defined(MODULE_NRFMIN)
+#if defined(MODULE_CC110X) || defined(MODULE_NRFMIN) || defined(MODULE_NRF24L01P)
             case NETDEV_TYPE_CC110X:
             case NETDEV_TYPE_NRFMIN:
+            case NETDEV_TYPE_NRF24L01P:
                 _create_iid_from_short(netif, eui64);
                 return 0;
 #endif
@@ -1122,6 +1123,7 @@ bool gnrc_netif_is_6ln(const gnrc_netif_t *netif)
     switch (netif->device_type) {
         case NETDEV_TYPE_IEEE802154:
         case NETDEV_TYPE_CC110X:
+        case NETDEV_TYPE_NRF24L01P:
         case NETDEV_TYPE_BLE:
         case NETDEV_TYPE_NRFMIN:
             return true;

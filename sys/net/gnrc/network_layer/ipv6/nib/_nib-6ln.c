@@ -69,6 +69,15 @@ static inline uint8_t _reverse_iid(const ipv6_addr_t *dst,
             l2addr[0] = dst->u8[15];
             return sizeof(uint8_t);
 #endif  /* MODULE_CC110X */
+#ifdef MODULE_NRF24L01P
+        case NETDEV_TYPE_CC110X:
+            l2addr[0] = dst->u8[9];
+            l2addr[1] = dst->u8[10];
+            l2addr[2] = dst->u8[13];
+            l2addr[3] = dst->u8[14];
+            l2addr[4] = dst->u8[15];
+            return sizeof(uint8_t);
+#endif  /* MODULE_CC110X */
         default:
             (void)dst;
             (void)l2addr;

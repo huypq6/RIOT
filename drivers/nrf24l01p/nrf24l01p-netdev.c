@@ -51,7 +51,7 @@ static void _isr(netdev_t *netdev);
 static int _get(netdev_t *netdev, netopt_t opt, void *val, size_t max_len);
 static int _set(netdev_t *netdev, netopt_t opt, const void *val, size_t len);
 
-const netdev_driver_t at86rf2xx_driver = {
+const netdev_driver_t netdev_nrf24l01p_driver = {
     .send = _send,
     .recv = _recv,
     .init = _init,
@@ -240,146 +240,28 @@ static int _init(netdev_t *dev)
 
     nrf24l01p_t *nrf24l01p = &((netdev_nrf24l01p_t*) dev)->nrf24l01p;
 
-    int status;
-    static const char INITIAL_TX_ADDRESS[] =  {0xe7, 0xe7, 0xe7, 0xe7, 0xe7,};
-    static const char INITIAL_RX_ADDRESS[] =  {0xe7, 0xe7, 0xe7, 0xe7, 0xe7,};
-
-    nrf24l01p->listener = KERNEL_PID_UNDEF;
-
-    /* Init CE pin */
-    gpio_init(nrf24l01p->params.ce, GPIO_OUT);
-
-    /* Init CS pin */
-    spi_init_cs(nrf24l01p->params.spi, nrf24l01p->params.cs);
-
     /* Init IRQ pin */
     gpio_init_int(nrf24l01p->params.irq, GPIO_IN_PU, GPIO_FALLING, _netdev_nrf24l01p_isr, nrf24l01p);
 
-    /* Test the SPI connection */
-    if (spi_acquire(nrf24l01p->params.spi, nrf24l01p->params.cs, SPI_MODE, SPI_CLK) != SPI_OK) {
-        DEBUG("error: unable to acquire SPI bus with given params\n");
-        return -1;
-    }
-    spi_release(nrf24l01p->params.spi);
-
-    xtimer_spin(DELAY_AFTER_FUNC_TICKS);
-
-    /* Flush TX FIFIO */
-    status = nrf24l01p_flush_tx_fifo(nrf24l01p);
-
-    if (status < 0) {
-        return status;
-    }
-
-    /* Flush RX FIFIO */
-    status = nrf24l01p_flush_rx_fifo(nrf24l01p);
-
-    if (status < 0) {
-        return status;
-    }
-
-    /* Setup adress width */
-    status = nrf24l01p_set_address_width(nrf24l01p, NRF24L01P_AW_5BYTE);
-
-    if (status < 0) {
-        return status;
-    }
-
-    /* Setup payload width */
-    status = nrf24l01p_set_payload_width(nrf24l01p, NRF24L01P_PIPE0, NRF24L01P_MAX_DATA_LENGTH);
-
-    if (status < 0) {
-        return status;
-    }
-
-    /* Set RF channel */
-    status = nrf24l01p_set_channel(nrf24l01p, INITIAL_RF_CHANNEL);
-
-    if (status < 0) {
-        return status;
-    }
-
-    /* Set RF power */
-    status = nrf24l01p_set_power(nrf24l01p, INITIAL_RX_POWER_0dB);
-
-    if (status < 0) {
-        return status;
-    }
-
-    /* Set RF datarate */
-    status = nrf24l01p_set_datarate(nrf24l01p, NRF24L01P_DR_250KBS);
-
-    if (status < 0) {
-        return status;
-    }
-
-    /* Set TX Address */
-    status = nrf24l01p_set_tx_address(nrf24l01p, INITIAL_TX_ADDRESS, INITIAL_ADDRESS_WIDTH);
-
-    if (status < 0) {
-        return status;
-    }
-
-    /* Set RX Adress */
-    status = nrf24l01p_set_rx_address(nrf24l01p, NRF24L01P_PIPE0, INITIAL_RX_ADDRESS, INITIAL_ADDRESS_WIDTH);
-
-    if (status < 0) {
-        return status;
-    }
-
-    /* Reset auto ack for all pipes */
-    status = nrf24l01p_disable_all_auto_ack(nrf24l01p);
-
-    if (status < 0) {
-        return status;
-    }
-
-    /* Setup Auto ACK and retransmission */
-    status = nrf24l01p_setup_auto_ack(nrf24l01p, NRF24L01P_PIPE0, NRF24L01P_RETR_750US, 15);
-
-    if (status < 0) {
-        return status;
-    }
-
-    /* Setup CRC */
-    status = nrf24l01p_enable_crc(nrf24l01p, NRF24L01P_CRC_2BYTE);
-
-    if (status < 0) {
-        return status;
-    }
-
-    /* Reset all interrupt flags */
-    status = nrf24l01p_reset_all_interrupts(nrf24l01p);
-
-    if (status < 0) {
-        return status;
-    }
-
-    return nrf24l01p_on(nrf24l01p);
+   
+    nrf24l01p_set_rxmode(nrf24l01p);
+    return 0;
 }
 
-// const netdev_driver_t netdev_nrf24l01p_driver = {
-//     .send=_send,
-//     .recv=_recv,
-//     .init=_init,
-//     .get=_get,
-//     .set=_set,
-//     .isr=_isr
-// };
 
-// int netdev_nrf24l01p_setup(netdev_nrf24l01p_t *netdev_nrf24l01p, const nrf24l01p_params_t *params)
-// {
-//     DEBUG("netdev_nrf24l01p_setup()\n");
-//     netdev_nrf24l01p->netdev.driver = &netdev_nrf24l01p_driver;
+int netdev_nrf24l01p_setup(netdev_nrf24l01p_t *netdev_nrf24l01p, const nrf24l01p_params_t *params)
+{
+    DEBUG("netdev_nrf24l01p_setup()\n");
+    netdev_nrf24l01p->netdev.driver = &netdev_nrf24l01p_driver;
 
-//     /* set default protocol */
-// #ifdef MODULE_GNRC_NETIF
-// # ifdef MODULE_GNRC_SIXLOWPAN
-//     netdev_nrf24l01p->nrf24l01p.proto = GNRC_NETTYPE_SIXLOWPAN;
-// # else
-//     netdev_nrf24l01p->nrf24l01p.proto = GNRC_NETTYPE_UNDEF;
-// # endif
-// #endif
+    /* set default protocol */
+#ifdef MODULE_GNRC_NETIF
+# ifdef MODULE_GNRC_SIXLOWPAN
+    netdev_nrf24l01p->nrf24l01p.proto = GNRC_NETTYPE_SIXLOWPAN;
+# else
+    netdev_nrf24l01p->nrf24l01p.proto = GNRC_NETTYPE_UNDEF;
+# endif
+#endif
 
-//     return cc110x_setup(&netdev_nrf24l01p->nrf24l01p, params);
-// }
+    return nrf24l01p_setup(&netdev_nrf24l01p->nrf24l01p, params);
+}

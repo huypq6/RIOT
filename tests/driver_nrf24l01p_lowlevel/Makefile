@@ -1,5 +1,6 @@
 include ../Makefile.tests_common
 
+BOARD = nucleo-l476rg
 # exclude boards with insufficient memory
 BOARD_INSUFFICIENT_MEMORY := nucleo-f031k6
 
@@ -13,9 +14,9 @@ USEMODULE += nrf24l01p
 
 # set default device parameters in case they are undefined
 SPI_PORT ?= SPI_DEV\(0\)
-CE_PIN   ?= GPIO_PIN\(0,0\)
-CS_PIN   ?= GPIO_PIN\(0,1\)
-IRQ_PIN  ?= GPIO_PIN\(0,2\)
+CE_PIN   ?= GPIO_PIN\(0,9\)
+CS_PIN   ?= GPIO_PIN\(0,8\)
+IRQ_PIN  ?= GPIO_PIN\(1,10\)
 
 # export parameters
 CFLAGS += -DSPI_PORT=$(SPI_PORT)
